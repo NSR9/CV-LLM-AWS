@@ -184,8 +184,8 @@
 ### **Deployment**
 ```bash
 # Clone and deploy
-git clone https://github.com/yourusername/ai-vision-explorer.git
-cd ai-vision-explorer
+git clone -b clean-dev https://github.com/NSR9/CV-LLM-AWS.git
+cd CV-LLM-AWS
 chmod +x deploy_ec2.sh
 ./deploy_ec2.sh
 ```
