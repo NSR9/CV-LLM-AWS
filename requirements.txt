@@ -1,0 +1,48 @@
+# AI Vision Explorer - Complete Dependencies
+# Core deep learning framework
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Web application framework
+streamlit>=1.28.0
+
+# Image processing
+pillow>=10.0.0
+opencv-python>=4.8.0
+
+# Data manipulation and visualization
+numpy>=1.24.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+plotly>=5.15.0
+
+# Scientific computing
+scipy>=1.10.0
+
+# AI Model APIs and Transformers
+google-generativeai>=0.3.0  # For Gemini API
+requests>=2.31.0  # For API calls
+python-dotenv>=1.0.0  # For environment variables
+transformers>=4.30.0  # For BLIP local model
+accelerate>=0.20.0  # For model optimization
+tokenizers>=0.13.0  # For text processing
+
+# Performance optimization
+numba>=0.57.0
+
+# Additional visualization options
+seaborn>=0.12.0
+bokeh>=3.0.0
+
+# Development and testing (optional)
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Utility packages
+num2words>=0.5.12
+tqdm>=4.65.0  # For progress bars
+packaging>=23.0  # For version management
+
+

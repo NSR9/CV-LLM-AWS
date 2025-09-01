@@ -1,0 +1,19 @@
+# AI Vision Explorer - CPU-Only Dependencies
+# Core deep learning framework (CPU-only to save space)
+--find-links https://download.pytorch.org/whl/cpu
+torch>=2.8.0+cpu
+torchvision>=0.23.0+cpu
+
+# Web application framework
+streamlit>=1.48.1
+
+# Image processing
+pillow>=11.3.0
+
+# Data manipulation and visualization
+numpy>=2.2.6
+matplotlib>=3.10.5
+plotly>=5.18.0
+
+# Scientific computing
+scipy>=1.15.3
