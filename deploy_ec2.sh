@@ -84,10 +84,10 @@ cd $APP_DIR
 # Clone repository (if not already present)
 if [ ! -d ".git" ]; then
     print_status "Cloning repository..."
-    git clone -b dev https://github.com/NSR9/CV-LLM-AWS.git .
+    git clone -b clean-dev https://github.com/NSR9/CV-LLM-AWS.git .
 else
     print_status "Repository already exists. Pulling latest changes..."
-    git pull origin dev
+    git pull origin clean-dev
 fi
 
 # Create virtual environment
