@@ -38,6 +38,22 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+# Check initial disk space
+print_status "Checking available disk space..."
+TOTAL_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $2}')
+AVAILABLE_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $4}')
+USED_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $3}')
+
+print_status "Disk space summary:"
+print_status "  Total: $((TOTAL_SPACE / 1024 / 1024))GB"
+print_status "  Used: $((USED_SPACE / 1024 / 1024))GB"
+print_status "  Available: $((AVAILABLE_SPACE / 1024 / 1024))GB"
+
+if [ "$AVAILABLE_SPACE" -lt 3000000 ]; then  # Less than 3GB
+    print_warning "Low disk space detected. Installation may fail."
+    print_warning "Consider using an EC2 instance with more storage."
+fi
+
 # Update system packages
 print_status "Updating system packages..."
 sudo apt update && sudo apt upgrade -y
@@ -87,7 +103,22 @@ if [ ! -d ".git" ]; then
     git clone -b clean-dev https://github.com/NSR9/CV-LLM-AWS.git .
 else
     print_status "Repository already exists. Pulling latest changes..."
-    git pull origin clean-dev
+    # Try to pull with merge strategy first
+    if ! git pull origin clean-dev; then
+        print_warning "Standard pull failed. Trying alternative strategies..."
+        
+        # Option 1: Try with allow-unrelated-histories
+        if git pull origin clean-dev --allow-unrelated-histories; then
+            print_success "Successfully pulled with unrelated histories merge"
+        else
+            print_warning "Pull with unrelated histories failed. Trying reset strategy..."
+            
+            # Option 2: Reset to remote branch
+            git fetch origin clean-dev
+            git reset --hard origin/clean-dev
+            print_success "Reset to remote clean-dev branch"
+        fi
+    fi
 fi
 
 # Create virtual environment
@@ -101,12 +132,93 @@ pip install --upgrade pip
 
 # Install Python dependencies
 print_status "Installing Python dependencies..."
-pip install -r requirements.txt
+
+# Check available disk space before installation
+AVAILABLE_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $4}')
+REQUIRED_SPACE=5000000  # 5GB in KB
+
+if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
+    print_warning "Low disk space detected: ${AVAILABLE_SPACE}KB available"
+    print_warning "Recommended: At least 5GB free space for installation"
+    
+    # Try to free up some space
+    print_status "Attempting to free up disk space..."
+    sudo apt clean
+    sudo apt autoremove -y
+    
+    # Check space again
+    AVAILABLE_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $4}')
+    if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
+        print_error "Insufficient disk space after cleanup. Please increase EC2 storage or use a larger instance."
+        print_error "Available: ${AVAILABLE_SPACE}KB, Required: ${REQUIRED_SPACE}KB"
+        exit 1
+    fi
+fi
+
+# Install dependencies with space monitoring
+print_status "Installing Python dependencies (this may take several minutes)..."
+
+# Choose requirements file based on available space
+if [ "$AVAILABLE_SPACE" -lt 8000000 ]; then  # Less than 8GB
+    print_warning "Limited disk space detected. Using minimal requirements."
+    REQUIREMENTS_FILE="requirements-minimal.txt"
+    
+    # Check if minimal requirements file exists
+    if [ ! -f "$REQUIREMENTS_FILE" ]; then
+        print_error "Minimal requirements file not found. Using standard requirements."
+        REQUIREMENTS_FILE="requirements.txt"
+    fi
+else
+    REQUIREMENTS_FILE="requirements.txt"
+fi
+
+print_status "Using requirements file: $REQUIREMENTS_FILE"
+
+if ! pip install -r "$REQUIREMENTS_FILE"; then
+    print_error "Failed to install Python dependencies"
+    print_error "This may be due to insufficient disk space or network issues"
+    print_error "Please check your EC2 instance storage and try again"
+    
+    # Try minimal installation as fallback
+    if [ "$REQUIREMENTS_FILE" != "requirements-minimal.txt" ] && [ -f "requirements-minimal.txt" ]; then
+        print_warning "Trying minimal installation as fallback..."
+        if pip install -r requirements-minimal.txt; then
+            print_success "Minimal installation successful"
+        else
+            print_error "Both standard and minimal installations failed"
+            exit 1
+        fi
+    else
+        exit 1
+    fi
+fi
+
+# Install PyTorch separately if using minimal requirements
+if [ "$REQUIREMENTS_FILE" = "requirements-minimal.txt" ]; then
+    print_status "Installing PyTorch separately for local model support..."
+    
+    # Check if PyTorch is needed (if BLIP model will be downloaded)
+    if [ -f "download_blip_model.py" ]; then
+        print_status "Installing PyTorch for BLIP model..."
+        if ! pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu; then
+            print_warning "PyTorch installation failed. BLIP local model will not be available."
+            print_warning "You can still use Gemini cloud model."
+        else
+            print_success "PyTorch installed successfully"
+        fi
+    fi
+fi
 
 # Download BLIP model (optional)
 print_status "Setting up BLIP model..."
 if [ -f "download_blip_model.py" ]; then
-    python download_blip_model.py
+    # Check if PyTorch is available for BLIP
+    if python -c "import torch; print('PyTorch available')" 2>/dev/null; then
+        python download_blip_model.py
+    else
+        print_warning "PyTorch not available. Skipping BLIP model download."
+        print_warning "You can still use Gemini cloud model for image analysis."
+    fi
 else
     print_warning "download_blip_model.py not found. Skipping BLIP model download."
 fi

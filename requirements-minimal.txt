@@ -1,0 +1,33 @@
+# AI Vision Explorer - Minimal Dependencies
+# For smaller EC2 instances with limited disk space
+
+# Core web framework
+streamlit>=1.28.0
+
+# Image processing
+pillow>=10.0.0
+
+# Data manipulation
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+plotly>=5.15.0
+
+# AI Model APIs
+google-generativeai>=0.3.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Transformers (for BLIP model)
+transformers>=4.30.0
+accelerate>=0.20.0
+tokenizers>=0.13.0
+
+# Utility packages
+tqdm>=4.65.0
+packaging>=23.0
+
+# Note: PyTorch is not included in minimal requirements
+# It will be installed separately if needed for local models

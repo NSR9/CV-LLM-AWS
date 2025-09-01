@@ -9,17 +9,20 @@
   - Cost: ~$30/month
   - Good for: Testing, small workloads
   - Limitations: CPU-only, slower inference
+  - **Storage**: Minimum 20GB, recommended 50GB
 
 #### **For Production (CPU-only):**
 - **t3.large** (2 vCPU, 8 GB RAM)
   - Cost: ~$60/month
   - Good for: Production workloads
   - Better performance than t3.medium
+  - **Storage**: Minimum 50GB, recommended 100GB
 
 - **c6i.large** (2 vCPU, 4 GB RAM)
   - Cost: ~$70/month
   - Good for: Compute-intensive workloads
   - Optimized for CPU performance
+  - **Storage**: Minimum 50GB, recommended 100GB
 
 #### **For Production (with GPU):**
 - **g4dn.xlarge** (4 vCPU, 16 GB RAM, 1 GPU)
@@ -257,7 +260,25 @@ EOF
 
 ### **Common Issues**
 
-1. **Application won't start**
+1. **Disk Space Issues**
+   ```bash
+   # Check disk space
+   df -h
+   
+   # Clean up package cache
+   sudo apt clean
+   sudo apt autoremove -y
+   
+   # Remove old log files
+   sudo find /var/log -name "*.log" -mtime +7 -delete
+   
+   # If still low on space, consider:
+   # - Upgrading to larger instance
+   # - Adding additional EBS volume
+   # - Using minimal requirements
+   ```
+
+2. **Application won't start**
    ```bash
    # Check logs
    sudo journalctl -u ai-vision-explorer -f
