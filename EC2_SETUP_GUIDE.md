@@ -101,7 +101,7 @@ chmod 400 your-key.pem
 #### **Option A: Automated Deployment (Recommended)**
 ```bash
 # Download deployment script
-wget https://raw.githubusercontent.com/yourusername/ai-vision-explorer/main/deploy_ec2.sh
+wget https://raw.githubusercontent.com/NSR9/CV-LLM-AWS/clean-dev/deploy_ec2.sh
 
 # Make executable
 chmod +x deploy_ec2.sh
@@ -119,8 +119,8 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 python3-pip python3-venv git curl wget
 
 # Clone repository
-git clone https://github.com/yourusername/ai-vision-explorer.git
-cd ai-vision-explorer
+git clone -b clean-dev https://github.com/NSR9/CV-LLM-AWS.git
+cd CV-LLM-AWS
 
 # Create virtual environment
 python3 -m venv venv
