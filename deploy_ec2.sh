@@ -135,11 +135,11 @@ print_status "Installing Python dependencies..."
 
 # Check available disk space before installation
 AVAILABLE_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $4}')
-REQUIRED_SPACE=5000000  # 5GB in KB
+REQUIRED_SPACE=3000000  # Reduced to 3GB in KB for minimal installation
 
 if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
     print_warning "Low disk space detected: ${AVAILABLE_SPACE}KB available"
-    print_warning "Recommended: At least 5GB free space for installation"
+    print_warning "Recommended: At least 3GB free space for minimal installation"
     
     # Try to free up some space
     print_status "Attempting to free up disk space..."
@@ -149,9 +149,8 @@ if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
     # Check space again
     AVAILABLE_SPACE=$(df /home/ubuntu | awk 'NR==2 {print $4}')
     if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
-        print_error "Insufficient disk space after cleanup. Please increase EC2 storage or use a larger instance."
-        print_error "Available: ${AVAILABLE_SPACE}KB, Required: ${REQUIRED_SPACE}KB"
-        exit 1
+        print_warning "Still low on disk space. Proceeding with minimal installation..."
+        print_warning "Some features may be limited."
     fi
 fi
 
@@ -174,6 +173,19 @@ fi
 
 print_status "Using requirements file: $REQUIREMENTS_FILE"
 
+# Force minimal requirements if space is very limited
+if [ "$AVAILABLE_SPACE" -lt 5000000 ]; then  # Less than 5GB
+    print_warning "Very limited disk space. Forcing minimal requirements."
+    REQUIREMENTS_FILE="requirements-minimal.txt"
+fi
+
+# Force ultra-minimal requirements if space is extremely limited
+if [ "$AVAILABLE_SPACE" -lt 3000000 ]; then  # Less than 3GB
+    print_warning "Extremely limited disk space. Using ultra-minimal requirements."
+    print_warning "Only cloud-based features will be available."
+    REQUIREMENTS_FILE="requirements-ultra-minimal.txt"
+fi
+
 if ! pip install -r "$REQUIREMENTS_FILE"; then
     print_error "Failed to install Python dependencies"
     print_error "This may be due to insufficient disk space or network issues"
@@ -186,6 +198,14 @@ if ! pip install -r "$REQUIREMENTS_FILE"; then
             print_success "Minimal installation successful"
         else
             print_error "Both standard and minimal installations failed"
+            exit 1
+        fi
+    elif [ "$REQUIREMENTS_FILE" != "requirements-ultra-minimal.txt" ] && [ -f "requirements-ultra-minimal.txt" ]; then
+        print_warning "Trying ultra-minimal installation as fallback..."
+        if pip install -r requirements-ultra-minimal.txt; then
+            print_success "Ultra-minimal installation successful"
+        else
+            print_error "All installation attempts failed"
             exit 1
         fi
     else

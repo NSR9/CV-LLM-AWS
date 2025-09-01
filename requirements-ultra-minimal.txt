@@ -1,0 +1,32 @@
+# AI Vision Explorer - Ultra Minimal Dependencies
+# For very small EC2 instances with extremely limited disk space
+
+# Core web framework (essential)
+streamlit>=1.28.0
+
+# Basic image processing
+pillow>=10.0.0
+
+# Essential data manipulation
+numpy>=1.24.0
+
+# Basic visualization
+matplotlib>=3.7.0
+
+# AI Model APIs (cloud only)
+google-generativeai>=0.3.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Note: This ultra-minimal version excludes:
+# - pandas (large dependency)
+# - plotly (large dependency)
+# - transformers (very large)
+# - PyTorch (extremely large)
+# - BLIP local model support
+
+# This version supports:
+# - Streamlit web interface
+# - Gemini cloud API
+# - Basic image processing
+# - Grad-CAM analysis (with reduced dependencies)
