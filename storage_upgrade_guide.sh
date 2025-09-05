@@ -50,3 +50,4 @@ echo "🚀 To continue with minimal installation:"
 echo "wget https://raw.githubusercontent.com/NSR9/CV-LLM-AWS/clean-dev/deploy_ec2.sh"
 echo "chmod +x deploy_ec2.sh"
 echo "./deploy_ec2.sh"
+

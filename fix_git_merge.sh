@@ -114,3 +114,4 @@ echo ""
 print_success "Git conflict resolved!"
 echo "Current status:"
 git status --short
+

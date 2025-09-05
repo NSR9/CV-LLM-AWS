@@ -31,3 +31,4 @@ packaging>=23.0
 
 # Note: PyTorch is not included in minimal requirements
 # It will be installed separately if needed for local models
+

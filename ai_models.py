@@ -1,6 +1,6 @@
 """
 AI Models Integration Module
-Handles Gemini API for multimodal image analysis and local BLIP model for VQA
+Handles Gemini API for multimodal image analysis
 """
 
 import os
@@ -18,103 +18,9 @@ import torch
 from transformers import BlipForQuestionAnswering, AutoProcessor
 import warnings
 
-# Suppress warnings for better user experience
-warnings.filterwarnings("ignore", message="Using the model-agnostic default `max_length`")
-from transformers.utils import logging as transformers_logging
-transformers_logging.set_verbosity_error()
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# ==================== LOCAL BLIP MODEL FOR VQA ====================
-class BLIPLocalModel:
-    """Handles local BLIP model for Visual Question Answering"""
-    
-    def __init__(self, model_path: str = None):
-        """
-        Initialize BLIP model locally
-        
-        Args:
-            model_path (str): Path to local model directory (optional)
-        """
-        # Original code: self.model_path = model_path or "./models/Salesforce/blip-vqa-base"
-        self.model_path = model_path or "./models/Salesforce/blip-vqa-base"
-        
-        try:
-            # Load model and processor
-            # Original code: self.model = BlipForQuestionAnswering.from_pretrained(self.model_path)
-            self.model = BlipForQuestionAnswering.from_pretrained(self.model_path)
-            # Original code: self.processor = AutoProcessor.from_pretrained(self.model_path)
-            self.processor = AutoProcessor.from_pretrained(self.model_path)
-            
-            # Set model to evaluation mode
-            # Original code: self.model.eval()
-            self.model.eval()
-            
-            # Move to GPU if available
-            # Original code: self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            # Original code: self.model.to(self.device)
-            self.model.to(self.device)
-            
-            logger.info(f"BLIP model loaded successfully on {self.device}")
-            
-        except Exception as e:
-            logger.error(f"Failed to load BLIP model: {str(e)}")
-            raise Exception(f"Failed to load BLIP model: {str(e)}")
-    
-    def analyze_image(self, image: Image.Image, question: str) -> Dict[str, Any]:
-        """
-        Analyze image with a question using local BLIP model
-        
-        Args:
-            image (Image.Image): PIL image to analyze
-            question (str): Question about the image
-            
-        Returns:
-            Dict[str, Any]: Analysis results
-        """
-        try:
-            start_time = time.time()
-            
-            # Process inputs
-            # Original code: inputs = self.processor(image, question, return_tensors="pt")
-            inputs = self.processor(image, question, return_tensors="pt")
-            
-            # Move inputs to device
-            # Original code: inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            # Generate answer
-            # Original code: with torch.no_grad():
-            with torch.no_grad():
-                # Original code: out = self.model.generate(**inputs)
-                out = self.model.generate(**inputs)
-            
-            # Decode the answer
-            # Original code: answer = self.processor.decode(out[0], skip_special_tokens=True)
-            answer = self.processor.decode(out[0], skip_special_tokens=True)
-            
-            response_time = time.time() - start_time
-            
-            return {
-                "success": True,
-                "answer": answer,
-                "model": "BLIP VQA (Local)",
-                "response_time": response_time,
-                "device": str(self.device)
-            }
-                
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"BLIP analysis failed: {error_msg}")
-            
-            return {
-                "success": False,
-                "error": error_msg,
-                "model": "BLIP VQA (Local)"
-            }
 
 # ==================== GEMINI API INTEGRATION ====================
 class GeminiModel:
@@ -189,6 +95,109 @@ class GeminiModel:
                 "model": "Gemini 1.5 Pro"
             }
 
+# ==================== BLIP LOCAL MODEL INTEGRATION ====================
+class BlipLocalModel:
+    """Handles interactions with local BLIP VQA model for offline analysis"""
+    
+    def __init__(self):
+        """
+        Initialize BLIP local model
+        """
+        # Suppress warnings for better user experience
+        warnings.filterwarnings("ignore", message="Using the model-agnostic default `max_length`")
+        from transformers.utils import logging as transformers_logging
+        transformers_logging.set_verbosity_error()
+        
+        self.model = None
+        self.processor = None
+        self.device = None
+        self._load_model()
+    
+    def _load_model(self):
+        """Load the BLIP model and processor"""
+        try:
+            logger.info("Loading BLIP local model...")
+            
+            # Check if local model exists
+            local_path = "./models/Salesforce/blip-vqa-base"
+            if os.path.exists(local_path):
+                logger.info(f"Using local model from: {local_path}")
+                model_path = local_path
+            else:
+                logger.warning("Local model not found, downloading from Hugging Face...")
+                model_path = "Salesforce/blip-vqa-base"
+            
+            # Load model and processor
+            self.model = BlipForQuestionAnswering.from_pretrained(model_path)
+            self.processor = AutoProcessor.from_pretrained(model_path)
+            
+            # Set model to evaluation mode
+            self.model.eval()
+            
+            # Move to GPU if available
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.model.to(self.device)
+            
+            logger.info(f"BLIP model loaded successfully on {self.device}")
+            
+        except Exception as e:
+            logger.error(f"Failed to load BLIP model: {str(e)}")
+            raise e
+    
+    def analyze_image(self, image: Image.Image, question: str) -> Dict[str, Any]:
+        """
+        Analyze image with a question using BLIP
+        
+        Args:
+            image (Image.Image): PIL image to analyze
+            question (str): Question about the image
+            
+        Returns:
+            Dict[str, Any]: Analysis results
+        """
+        try:
+            if self.model is None or self.processor is None:
+                return {
+                    "success": False,
+                    "error": "BLIP model not loaded",
+                    "model": "BLIP Local"
+                }
+            
+            start_time = time.time()
+            
+            # Process inputs
+            inputs = self.processor(image, question, return_tensors="pt")
+            
+            # Move inputs to device
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            # Generate answer
+            with torch.no_grad():
+                out = self.model.generate(**inputs)
+            
+            # Decode the answer
+            answer = self.processor.decode(out[0], skip_special_tokens=True)
+            
+            response_time = time.time() - start_time
+            
+            return {
+                "success": True,
+                "answer": answer,
+                "model": "BLIP Local",
+                "response_time": response_time,
+                "device": str(self.device)
+            }
+                
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"BLIP analysis failed: {error_msg}")
+            
+            return {
+                "success": False,
+                "error": error_msg,
+                "model": "BLIP Local"
+            }
+
 # ==================== MODEL FACTORY ====================
 class AIModelFactory:
     """Factory class to create and manage AI models"""
@@ -199,8 +208,8 @@ class AIModelFactory:
         Create an AI model instance based on type
         
         Args:
-            model_type (str): Type of model ('gemini', 'blip_local')
-            api_key (str): API key for the model (not needed for local models)
+            model_type (str): Type of model ('gemini')
+            api_key (str): API key for the model
             **kwargs: Additional arguments for model initialization
             
         Returns:
@@ -211,8 +220,7 @@ class AIModelFactory:
                 # Original code: return GeminiModel(api_key)
                 return GeminiModel(api_key)
             elif model_type.lower() == "blip_local":
-                # Original code: return BLIPLocalModel(**kwargs)
-                return BLIPLocalModel(**kwargs)
+                return BlipLocalModel()
             else:
                 raise ValueError(f"Unsupported model type: {model_type}")
         except Exception as e:
@@ -254,11 +262,11 @@ def get_model_info(model_type: str) -> Dict[str, str]:
         }
     elif model_type.lower() == "blip_local":
         return {
-            "name": "BLIP VQA (Local)",
-            "description": "Local Visual Question Answering model",
-            "capabilities": "Image understanding and question answering",
-            "max_input": "No limit (local processing)",
-            "pricing": "Free (runs locally)"
+            "name": "BLIP Local",
+            "description": "Salesforce BLIP VQA model running locally",
+            "capabilities": "Visual Question Answering",
+            "max_input": "Local processing",
+            "pricing": "Free (offline)"
         }
     else:
         return {}
